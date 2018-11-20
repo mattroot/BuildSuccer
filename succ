@@ -1,10 +1,9 @@
 #!/bin/bash
 
-# C O M P A T I B I L I T Y
+# Initial vars
 export LC_ALL=C
-
-# PixelDrain server for deployment
 PDSERVER="https://sia.pixeldrain.com"
+TASKS=$2
 
 bshelp() {
     cat <<EOF
@@ -67,23 +66,16 @@ init() {
 }
 
 recc() {
+    broadcast_jobstart sync
     repo sync --force-sync -c -f -j64 --no-clone-bundle --no-tags
+    broadcast_jobfinish
 }
 
 cle() {
     source build/envsetup.sh
     make clobber
     make clean
-}
-
-build() {
-    source build/envsetup.sh
-    if [ $BS_BUILD_BRUNCH ];then
-        brunch $BS_BUILD_TARGET
-    else
-        lunch $BS_BUILD_TARGET
-        make -j$(nproc) $BS_BUILD_MAKE
-    fi
+    tgsend_ci "<b>$(pwd) cleaned.</b>"
 }
 
 # thanks Lawnchair guys for this
@@ -125,11 +117,59 @@ broadcast_generate() {
 📱 Device: <i><i>$BS_DEPLOY_DISPLAY_DEVICE</i></i>
 🔃 Android version: <i>$PLATFORM_VERSION</i>
 🆔 PAOSP version: <i>$BS_DEPLOY_DISPLAY_VERSION</i>
-📆 Build date: <i>Not implemented</i>
-ℹ️ Build type: <i>Not implemented</i>
+📆 Build date: <i>$(date +%Y-%m-%d)</i>
+ℹ️ Build type: <i>$BS_PACKAGE_TYPE</i>
 👤 Maintainer: $BS_DEPLOY_DISPLAY_MAINTAINER
 
 <b>Download:</b> <i>Not implemented</i>
 <b>MD5:</b> <i>Not implemented</i>"
 }
+ 
+broadcast_jobstart() {
+    tgsend_ci "<b>BuildSuccer job started.</b>
+Type: <i>$1</i>
+Target: <i>$BS_BUILD_TARGET</i>
+Host: <i>$(whoami)@$(hostname)
+Path: <i>$(pwd)</i>
+Time: <i>$(date)</i>"
+}
 
+broadcast_jobfinish() {
+    tgsend_ci "<b>Job finished</b> at $(date)"
+}
+
+build() {
+    broadcast_jobstart build
+    source build/envsetup.sh
+    if [ $BS_BUILD_BRUNCH ];then
+        brunch $BS_BUILD_TARGET
+    else
+        lunch $BS_BUILD_TARGET
+        make -j$(nproc) $BS_BUILD_MAKE
+    fi
+    
+    predeploy
+    
+    cd $OUT
+    pdup $BS_PACKAGE_NAME.zip
+    ZIP=$PDUP_PRODUCT
+    pdup $BS_PACKAGE_NAME.zip.md5sum
+    MD5=$PDUP_PRODUCT
+    
+    broadcast_generate
+    tgsend_ci $BROADCAST
+    tgsend_release $BROADCAST
+    broadcast_jobfinish
+}
+
+for (( i=0; i<${#TASKS}; i++ )); do
+    if [ "${foo:$i:1}" = "i" ];then
+        init
+    elif [ "${foo:$i:1}" = "s" ];then
+        recc
+    elif [ "${foo:$i:1}" = "b" ];then
+        build
+    elif [ "${foo:$i:1}" = "c" ];then
+        cle
+    fi
+done

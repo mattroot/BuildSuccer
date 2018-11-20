@@ -47,6 +47,7 @@ BS_DEPLOY_RELEASE_CHANNEL=
 # Before deploying a build to Telegram, you need some variables.
 # These variables are required to push the build to Pixeldrain (defining ex. file name) and fill in the release post.
 # This function is called after the build, right before Pixeldrain upload and Telegram deployment.
-BS_DEPLOY_PREDEPLOY_TASKS() {
-
+predeploy() {
+    export BS_PACKAGE_NAME="lineage-$LINEAGE_VERSION"
+    export BS_PACKAGE_TYPE=$CM_BUILDTYPE
 }
