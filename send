@@ -1,0 +1,23 @@
+#!/bin/bash
+
+message="$@"
+apiToken=
+chatId=
+channelId=
+send() {
+        curl -s \
+        -X POST \
+        https://api.telegram.org/bot$apiToken/sendMessage \
+        -d text="$message" \
+        -d chat_id=$chatId
+
+        curl -s \
+        -X POST \
+        https://api.telegram.org/bot$apiToken/sendMessage \
+        -d text="$message" \
+        -d chat_id=$channelId
+
+}
+if [[ ! -z "$message" ]]; then
+        send
+fi

@@ -1,0 +1,14 @@
+#!/bin/bash
+PDSERVER="https://sia.pixeldrain.com"
+for FILE in "$@"
+do
+FILENAME="${FILE##*/}"
+echo "Uploading $FILENAME ... "
+RESPONSE=$(curl -# -F "fileName=$FILENAME" -F "file=@$FILE" $PDSERVER/api/file)
+FILEID=$(echo $RESPONSE | grep -Po '(?<="id":")[^"]*')
+send "File $@ has been uploaded at  $PDSERVER/api/file/$FILEID"
+        echo ""
+        echo "UPLOADED: $PDSERVER/api/file/$FILEID"
+        echo ""
+done
+echo "" # Move cursor down when script finishes

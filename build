@@ -1,0 +1,32 @@
+#!/bin/bash
+# Start counting time
+start=$(date +%s)
+
+#    send $PWD $1 sync at $(hostname) started at $(date)
+ #   repo sync --force-sync -c -f -j$(nproc) --no-clone-bundle --no-tags
+ #   send $PWD $1 sync at $(hostname) finished at $(date)
+
+# Use envsetup
+. $PWD/build/envsetup.sh
+# Importing some stuff
+export USE_CCACHE=1
+export OTA_TYPE=teen
+echo "Exported usefull stuff"
+# Removing old build
+# make clean && make clobber
+# rm -rfv $PWD/out
+echo "Cleaned old build"
+# Syncing repo to the latest
+# repo sync -j32 --force-sync --no-tags --no-clone-bundle -f -c
+echo "Synced latest changes"
+# Let's build this shit
+send $1 build started at $(date)
+brunch paosp_$1-userdebug
+send $1 build finished at $(date)
+# Upload files online
+pdup $PWD/out/target/product/$1/*.zip
+pdup $PWD/out/target/product/$1/*.zip.md5sum
+# Printing total time
+end=$(date +%s)
+time=$(($end-$start))
+echo "It was $(($time/60)) min $(($time%60)) sec"
