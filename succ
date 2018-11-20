@@ -1,0 +1,135 @@
+#!/bin/bash
+
+# C O M P A T I B I L I T Y
+export LC_ALL=C
+
+# PixelDrain server for deployment
+PDSERVER="https://sia.pixeldrain.com"
+
+bshelp() {
+    cat <<EOF
+BuildSuccer 3.0 by MattRoot
+
+Usage:
+    $0 <config> <tasks> [options]
+    
+<config> - specify a config file to use in a build session.
+You can find example config file on MattRoot's GitHub.
+
+<tasks> - specify which tasks should be executed in a build session.
+Note that at least one task must be defined.
+IMPORTANT: Tasks will be executed in order exact to the way you specified in the argument.
+
+Available tasks:
+    
+    m   -   Install components required for building (Ubuntu and Debian only)
+    i   -   Init repository.
+    s   -   Sync repository.
+    b   -   Build ROM from source. If build succeeds, it will also be deployed to Telegram, if specified so in config file.
+    c   -   Clean build directory.
+    
+[options] - optional flags to change BuildSuccer behavior.
+
+Available flags:
+
+    p   -   Skip deployment. Notice that even with this flag enabled, CI channel would still be functioning, but will not post the final build.
+    
+Examples:
+
+    $0 "~/xenon.suc" isb
+    $0 "~/paosp.suc" scb p
+    $0 "~/dummy.suc" m
+    
+EOF
+}
+
+if [ "$#" -le 1 ];then
+    echo "ERROR: Invalid syntax."
+	bshelp
+	exit 2
+fi
+
+if [ ! -r $1 ];then
+    echo "ERROR: Config file $1 does not exist."
+    exit 2
+else
+    source $1
+fi
+
+init() {
+    repo init -u $BS_MANIFEST_REPO -b $BS_MANIFEST_BRANCH
+    mkdir .repo/local_manifests
+    if [ $BS_LOCAL_MANIFEST_USE ] && [ $BS_LOCAL_MANIFEST_GIT ];then
+        git clone $BS_LOCAL_MANIFEST_REPO -b $BS_LOCAL_MANIFEST_BRANCH
+    elif [ $BS_LOCAL_MANIFEST_USE ] && [ $BS_LOCAL_MANIFEST_CP ];then
+        cp $BS_LOCAL_MANIFEST_PATH .repo/local_manifests/RoomService.xml
+    fi
+}
+
+recc() {
+    repo sync --force-sync -c -f -j64 --no-clone-bundle --no-tags
+}
+
+cle() {
+    source build/envsetup.sh
+    make clobber
+    make clean
+}
+
+build() {
+    source build/envsetup.sh
+    if [ $BS_BUILD_BRUNCH ];then
+        brunch $BS_BUILD_TARGET
+    else
+        lunch $BS_BUILD_TARGET
+        make -j$(nproc) $BS_BUILD_MAKE
+    fi
+}
+
+# thanks Lawnchair guys for this
+tgsend_ci() {
+        curl \
+        -F chat_id="$BS_DEPLOY_CI_CHANNEL" \
+        -F text="$@" \
+        -F parse_mode="HTML" \
+        -F disable_web_page_preview="true" \
+        https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
+}
+
+tgsend_release() {
+        curl \
+        -F chat_id="$BS_DEPLOY_RELEASE_CHANNEL" \
+        -F text="$@" \
+        -F parse_mode="HTML" \
+        -F disable_web_page_preview="true" \
+        https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
+}
+
+# Thanks @artur9010 for this
+pdup() {
+    for FILE in "$@"
+    do
+        FILENAME="${FILE##*/}"
+        RESPONSE=$(curl -# -F "fileName=$FILENAME" -F "file=@$FILE" $PDSERVER/api/file)
+        FILEID=$(echo $RESPONSE | grep -Po '(?<="id":")[^"]*')
+        export PDUP_PRODUCT="$PDSERVER/api/file/$FILEID"
+    done
+    echo "" # Move cursor down because yes
+}
+
+# Thanks @LuckShadow for the idea, but I hope this one is better
+# TODO: Implement pre-deploy vars
+broadcast_generate() {
+    export BROADCAST="<b>New $BS_DEPLOY_DISPLAY_NAME release available!</b>
+
+📱 Device: <i><i>$BS_DEPLOY_DISPLAY_DEVICE</i></i>
+🔃 Android version: <i>$PLATFORM_VERSION</i>
+🆔 PAOSP version: <i>$BS_DEPLOY_DISPLAY_VERSION</i>
+📆 Build date: <i>Not implemented</i>
+ℹ️ Build type: <i>Not implemented</i>
+👤 Maintainer: $BS_DEPLOY_DISPLAY_MAINTAINER
+
+<b>Download:</b> <i>Not implemented</i>
+<b>MD5:</b> <i>Not implemented</i>"
+}
+
