@@ -80,21 +80,11 @@ cle() {
 
 # thanks Lawnchair guys for this
 tgsend_ci() {
-        curl \
-        -F chat_id="$BS_DEPLOY_CI_CHANNEL" \
-        -F text="$@" \
-        -F parse_mode="HTML" \
-        -F disable_web_page_preview="true" \
-        https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
+        curl -F chat_id="$BS_DEPLOY_CI_CHANNEL" -F text="$@" -F parse_mode="HTML" -F disable_web_page_preview="true" https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
 }
 
 tgsend_release() {
-        curl \
-        -F chat_id="$BS_DEPLOY_RELEASE_CHANNEL" \
-        -F text="$@" \
-        -F parse_mode="HTML" \
-        -F disable_web_page_preview="true" \
-        https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
+        curl -F chat_id="$BS_DEPLOY_RELEASE_CHANNEL" -F text="$@" -F parse_mode="HTML" -F disable_web_page_preview="true" https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
 }
 
 # Thanks @artur9010 for this
@@ -109,8 +99,6 @@ pdup() {
     echo "" # Move cursor down because yes
 }
 
-# Thanks @LuckShadow for the idea, but I hope this one is better
-# TODO: Implement pre-deploy vars
 broadcast_generate() {
     export BROADCAST="<b>New $BS_DEPLOY_DISPLAY_NAME release available!</b>
 
@@ -157,19 +145,19 @@ build() {
     MD5=$PDUP_PRODUCT
     
     broadcast_generate
-    tgsend_ci $BROADCAST
-    tgsend_release $BROADCAST
+    tgsend_ci "$BROADCAST"
+    tgsend_release "$BROADCAST"
     broadcast_jobfinish
 }
 
 for (( i=0; i<${#TASKS}; i++ )); do
-    if [ "${foo:$i:1}" = "i" ];then
+    if [ "${TASKS:$i:1}" = "i" ];then
         init
-    elif [ "${foo:$i:1}" = "s" ];then
+    elif [ "${TASKS:$i:1}" = "s" ];then
         recc
-    elif [ "${foo:$i:1}" = "b" ];then
+    elif [ "${TASKS:$i:1}" = "b" ];then
         build
-    elif [ "${foo:$i:1}" = "c" ];then
+    elif [ "${TASKS:$i:1}" = "c" ];then
         cle
     fi
 done
