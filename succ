@@ -75,16 +75,16 @@ cle() {
     source build/envsetup.sh
     make clobber
     make clean
-    tgsend_ci "<b>$(pwd) cleaned.</b>"
+    tgsend_ci "*$(pwd) cleaned.*"
 }
 
 # thanks Lawnchair guys for this
 tgsend_ci() {
-        curl -F chat_id="$BS_DEPLOY_CI_CHANNEL" -F text="$@" -F parse_mode="HTML" -F disable_web_page_preview="true" https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
+        curl -F chat_id="$BS_DEPLOY_CI_CHANNEL" -F text="$1" -F parse_mode="markdown" -F disable_web_page_preview="true" https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
 }
 
 tgsend_release() {
-        curl -F chat_id="$BS_DEPLOY_RELEASE_CHANNEL" -F text="$@" -F parse_mode="HTML" -F disable_web_page_preview="true" https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
+        curl -F chat_id="$BS_DEPLOY_RELEASE_CHANNEL" -F text="$1" -F parse_mode="markdown" -F disable_web_page_preview="true" https://api.telegram.org/bot$BS_DEPLOY_API_TOKEN/sendMessage
 }
 
 # Thanks @artur9010 for this
@@ -100,30 +100,30 @@ pdup() {
 }
 
 broadcast_generate() {
-    export BROADCAST="<b>New $BS_DEPLOY_DISPLAY_NAME release available!</b>
+    export BROADCAST="*New $BS_DEPLOY_DISPLAY_NAME release available!*
 
-📱 Device: <i><i>$BS_DEPLOY_DISPLAY_DEVICE</i></i>
-🔃 Android version: <i>$PLATFORM_VERSION</i>
-🆔 PAOSP version: <i>$BS_DEPLOY_DISPLAY_VERSION</i>
-📆 Build date: <i>$(date +%Y-%m-%d)</i>
-ℹ️ Build type: <i>$BS_PACKAGE_TYPE</i>
+📱 Device: $BS_DEPLOY_DISPLAY_DEVICE
+🔃 Android version: $PLATFORM_VERSION_
+🆔 PAOSP version: _$BS_DEPLOY_DISPLAY_VERSION_
+📆 Build date: $(date +%Y-%m-%d)
+ℹ️ Build type: $BS_PACKAGE_TYPE
 👤 Maintainer: $BS_DEPLOY_DISPLAY_MAINTAINER
 
-<b>Download:</b> <i>Not implemented</i>
-<b>MD5:</b> <i>Not implemented</i>"
+*Download:* _Not implemented_
+*MD5:* _Not implemented_"
 }
  
 broadcast_jobstart() {
-    tgsend_ci "<b>BuildSuccer job started.</b>
-Type: <i>$1</i>
-Target: <i>$BS_BUILD_TARGET</i>
-Host: <i>$(whoami)@$(hostname)
-Path: <i>$(pwd)</i>
-Time: <i>$(date)</i>"
+    tgsend_ci "*BuildSuccer job started.*
+Type: `_$1_`
+Target: `$BS_BUILD_TARGET`
+Host: _$(whoami)@$(hostname)
+Path: _$(pwd)_
+Time: _$(date)_"
 }
 
 broadcast_jobfinish() {
-    tgsend_ci "<b>Job finished</b> at $(date)"
+    tgsend_ci "*Job finished* at $(date)"
 }
 
 build() {
@@ -149,6 +149,7 @@ build() {
     tgsend_release "$BROADCAST"
     broadcast_jobfinish
 }
+
 
 for (( i=0; i<${#TASKS}; i++ )); do
     if [ "${TASKS:$i:1}" = "i" ];then
